@@ -8,11 +8,11 @@ ecdsa = "5.0.1"
 sha2 = "0.1.0"
 
 [package]
-name = ""
+name = "jwt"
 version = "0.0.1"
-description = ""
-repository = "https://github.com/edjcase/"
-keywords = [ ]
+description = "A JWT library for the Motoko programming language"
+repository = "https://github.com/edjcase/motoko_jwt"
+keywords = ["jwt", "json", "web", "token", "authentication", "authorization"]
 license = "MIT"
 
 [dev-dependencies]
