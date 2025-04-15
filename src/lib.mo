@@ -12,6 +12,7 @@ import HMAC "mo:hmac";
 import ECDSA "mo:ecdsa";
 import Sha256 "mo:sha2/Sha256";
 import Bool "mo:new-base/Bool";
+import RSA "mo:rsa";
 
 module {
 
@@ -59,11 +60,13 @@ module {
     public type SignatureVerificationKeyKind = {
         #symmetric;
         #ecdsa;
+        #rsa;
     };
 
     public type SignatureVerificationKey = {
         #symmetric : Blob;
         #ecdsa : ECDSA.PublicKey;
+        #rsa : RSA.PublicKey;
     };
 
     public type StandardHeader = {
@@ -493,6 +496,10 @@ module {
             // TODO
             // case ("ES384")
             // case ("ES512")
+            case ("RS256") func(key : SignatureVerificationKey) : Bool {
+                let #rsa(rsaKey) = key else return false;
+                verifyRSASignature(#sha256, token.signature.message.vals(), rsaKey, token.signature.value);
+            };
             case ("none") return #err("Algorithm 'none' is not supported for security reasons");
             case (_) return #err("Unsupported algorithm: " # token.signature.algorithm);
         };
@@ -510,6 +517,20 @@ module {
         signature : Blob,
     ) : Bool {
         let #ok(sig) = ECDSA.signatureFromBytes(signature.vals(), publicKey.curve, #raw) else return false;
+        let hash = switch (hashAlgorithm) {
+            case (#sha256) Sha256.fromIter(#sha256, message);
+            case (#sha224) Sha256.fromIter(#sha224, message);
+        };
+        publicKey.verifyHashed(hash.vals(), sig);
+    };
+
+    private func verifyRSASignature(
+        hashAlgorithm : Sha256.Algorithm,
+        message : Iter.Iter<Nat8>,
+        publicKey : RSA.PublicKey,
+        signature : Blob,
+    ) : Bool {
+        let #ok(sig) = RSA.signatureFromBytes(signature.vals(), #raw({ paddingAlgorithm = #pkcs1v1_5 })) else return false;
         let hash = switch (hashAlgorithm) {
             case (#sha256) Sha256.fromIter(#sha256, message);
             case (#sha224) Sha256.fromIter(#sha224, message);

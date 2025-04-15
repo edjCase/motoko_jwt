@@ -3,6 +3,7 @@ import Runtime "mo:new-base/Runtime";
 import Text "mo:new-base/Text";
 import JWT "../src";
 import ECDSA "mo:ecdsa";
+import RSA "mo:rsa";
 
 type TestCase = {
   token : Text;
@@ -36,6 +37,34 @@ test(
             algorithm = "HS256";
             value = "\28\C5\05\B0\80\D3\9C\59\B2\1B\79\CC\88\63\3A\1F\D1\4D\15\44\4E\7F\7C\21\ED\29\AA\26\9F\90\57\7D";
             message = "\65\79\4A\68\62\47\63\69\4F\69\4A\49\55\7A\49\31\4E\69\49\73\49\6E\52\35\63\43\49\36\49\6B\70\58\56\43\4A\39\2E\65\79\4A\7A\64\57\49\69\4F\69\49\78\4D\6A\4D\30\4E\54\59\33\4F\44\6B\77\49\69\77\69\62\6D\46\74\5A\53\49\36\49\6B\70\76\61\47\34\67\52\47\39\6C\49\69\77\69\59\57\52\74\61\57\34\69\4F\6E\52\79\64\57\55\73\49\6D\6C\68\64\43\49\36\4D\54\55\78\4E\6A\49\7A\4F\54\41\79\4D\6E\30";
+          };
+        };
+      },
+      {
+        token = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KaOUpwSBpAC1e4u0ur-SYsa0FcH0DXPmsOn_pfF72Acak9-mZslyzCqF7Ce1pGwpfhUJfBQpQoTTbtlgGAoUKF07IYGpu_M1JPkl0HKw_gX1altM4KDt8EnV4D0iUalV2QfJFUqaDKB1dTX7MciqtWvIVEL6wkjLFgYE-YD16bMMnA7_ryEUiWZOG_bAznMvzK4RVVNVj5yNvR52JoVzAXlBkvjXCpAeEjf_pS8-xV2igXrJzFIlrb2mGoLxVlLejH_gscIT-Bo3YP6zyLPP0Q9B8hEJ_YRWm4dS9-6E2ppqHDfosh8bpMOiNnBYDRFGiV3HKFG7L68uzp2nwYKvWg";
+        key = #rsa(
+          RSA.PublicKey(
+            0x10001,
+            0xa26e6fe957340fa5f15ed79b641bd0d667507ef93801ec5ca7128e3544d3346a82da3875d68a6a4a1ef57f47fb272a17d11c0c816b24e47b491abe2d34d0753a6db1dc1ca3ffd98811a74f981f182d32bc6277db8e11da712e39d1c71cbf8bf0fc9469a6b25a4f5bf5564112adfbc8d0572d1fc78f61e5b4a8dbec6270c310d463ac713702e729ba38808b2779852e619d0eef97e66be8a2981e28aecffe81d3a51224889dea48d80109f413fd950acdfc67abcb8d8e37e7b79bb27fa041f04b8bbc8656bc83bd57863aab75720ef37fd533af2479b8e8fdf61ed49a608b72244008b802809b9e421f814163f32776aae1191cf042cf19e902f00a911802b577,
+          )
+        );
+        audiences = [];
+        issuer = null;
+        expected = {
+          header = [
+            ("alg", #string("RS256")),
+            ("typ", #string("JWT")),
+          ];
+          payload = [
+            ("sub", #string("1234567890")),
+            ("name", #string("John Doe")),
+            ("admin", #bool(true)),
+            ("iat", #number(#int(1516239022))),
+          ];
+          signature = {
+            algorithm = "RS256";
+            value = "\29\A3\94\A7\04\81\A4\00\B5\7B\8B\B4\BA\BF\92\62\C6\B4\15\C1\F4\0D\73\E6\B0\E9\FF\A5\F1\7B\D8\07\1A\93\DF\A6\66\C9\72\CC\2A\85\EC\27\B5\A4\6C\29\7E\15\09\7C\14\29\42\84\D3\6E\D9\60\18\0A\14\28\5D\3B\21\81\A9\BB\F3\35\24\F9\25\D0\72\B0\FE\05\F5\6A\5B\4C\E0\A0\ED\F0\49\D5\E0\3D\22\51\A9\55\D9\07\C9\15\4A\9A\0C\A0\75\75\35\FB\31\C8\AA\B5\6B\C8\54\42\FA\C2\48\CB\16\06\04\F9\80\F5\E9\B3\0C\9C\0E\FF\AF\21\14\89\66\4E\1B\F6\C0\CE\73\2F\CC\AE\11\55\53\55\8F\9C\8D\BD\1E\76\26\85\73\01\79\41\92\F8\D7\0A\90\1E\12\37\FF\A5\2F\3E\C5\5D\A2\81\7A\C9\CC\52\25\AD\BD\A6\1A\82\F1\56\52\DE\8C\7F\E0\B1\C2\13\F8\1A\37\60\FE\B3\C8\B3\CF\D1\0F\41\F2\11\09\FD\84\56\9B\87\52\F7\EE\84\DA\9A\6A\1C\37\E8\B2\1F\1B\A4\C3\A2\36\70\58\0D\11\46\89\5D\C7\28\51\BB\2F\AF\2E\CE\9D\A7\C1\82\AF\5A";
+            message = "\65\79\4A\68\62\47\63\69\4F\69\4A\53\55\7A\49\31\4E\69\49\73\49\6E\52\35\63\43\49\36\49\6B\70\58\56\43\4A\39\2E\65\79\4A\7A\64\57\49\69\4F\69\49\78\4D\6A\4D\30\4E\54\59\33\4F\44\6B\77\49\69\77\69\62\6D\46\74\5A\53\49\36\49\6B\70\76\61\47\34\67\52\47\39\6C\49\69\77\69\59\57\52\74\61\57\34\69\4F\6E\52\79\64\57\55\73\49\6D\6C\68\64\43\49\36\4D\54\55\78\4E\6A\49\7A\4F\54\41\79\4D\6E\30";
           };
         };
       },
