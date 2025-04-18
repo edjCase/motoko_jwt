@@ -13,6 +13,7 @@ import ECDSA "mo:ecdsa";
 import Sha256 "mo:sha2/Sha256";
 import Bool "mo:new-base/Bool";
 import RSA "mo:rsa";
+import EdDSA "mo:eddsa";
 
 module {
 
@@ -61,12 +62,14 @@ module {
         #symmetric;
         #ecdsa;
         #rsa;
+        #eddsa;
     };
 
     public type SignatureVerificationKey = {
         #symmetric : Blob;
         #ecdsa : ECDSA.PublicKey;
         #rsa : RSA.PublicKey;
+        #eddsa : EdDSA.PublicKey;
     };
 
     public type StandardHeader = {
@@ -500,6 +503,10 @@ module {
                 let #rsa(rsaKey) = key else return false;
                 verifyRSASignature(#sha256, token.signature.message.vals(), rsaKey, token.signature.value);
             };
+            case ("EdDSA") func(key : SignatureVerificationKey) : Bool {
+                let #eddsa(eddsaKey) = key else return false;
+                verifyEdDSASignature(token.signature.message.vals(), eddsaKey, token.signature.value);
+            };
             case ("none") return #err("Algorithm 'none' is not supported for security reasons");
             case (_) return #err("Unsupported algorithm: " # token.signature.algorithm);
         };
@@ -508,6 +515,15 @@ module {
             if (isValid) return #ok(true);
         };
         return #ok(false);
+    };
+
+    private func verifyEdDSASignature(
+        message : Iter.Iter<Nat8>,
+        publicKey : EdDSA.PublicKey,
+        signature : Blob,
+    ) : Bool {
+        let #ok(sig) = EdDSA.signatureFromBytes(signature.vals(), #raw({ curve = publicKey.curve })) else return false;
+        publicKey.verify(message, sig);
     };
 
     private func verifyEcdsaSignature(

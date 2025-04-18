@@ -24,6 +24,7 @@ hmac = "0.0.1"
 ecdsa = "5.0.1"
 sha2 = "0.1.0"
 rsa = "0.0.2"
+eddsa = "0.0.1"
 
 [dev-dependencies]
 test = "2.1.1"
