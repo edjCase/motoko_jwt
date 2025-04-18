@@ -4,7 +4,6 @@ import Text "mo:new-base/Text";
 import JWT "../src";
 import ECDSA "mo:ecdsa";
 import RSA "mo:rsa";
-import EdDSA "mo:eddsa";
 
 type TestCase = {
   token : Text;
