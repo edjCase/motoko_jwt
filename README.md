@@ -18,6 +18,7 @@ To set up MOPS package manager, follow the instructions from the [MOPS Site](htt
 ## Supported JWT Features
 
 - Token parsing and validation
+- Token serialization to text and binary formats
 - Standard JWT claims (iss, sub, aud, exp, nbf, iat, jti)
 - Signature verification algorithms:
   - HMAC with SHA-256 (HS256)
@@ -137,11 +138,58 @@ switch (JWT.parseStandardPayload(token.payload)) {
 };
 ```
 
+### Example 3: Token Serialization and Signing
+
+```motoko
+import JWT "mo:jwt";
+import Result "mo:base/Result";
+import Debug "mo:base/Debug";
+import Json "mo:json";
+import Blob "mo:base/Blob";
+
+// Create an unsigned token
+let unsignedToken : JWT.UnsignedToken = {
+    header = [
+        ("alg", #string("HS256")),
+        ("typ", #string("JWT"))
+    ];
+    payload = [
+        ("sub", #string("1234567890")),
+        ("name", #string("John Doe")),
+        ("iat", #number(#int(1516239022)))
+    ];
+};
+
+// Convert unsigned token to binary representation
+let unsignedBlob = JWT.toBlobUnsigned(unsignedToken);
+
+let signature = sign(unsignedBlob); // Your own signature generator from bytes
+
+let signedToken : JWT.Token = {
+    unsignedToken with
+    signature = {
+        algorithm = "HS256";
+        value = signature;
+        message = unsignedBlob;
+    };
+};
+
+// Convert complete token to text (header.payload.signature format)
+let completeText = JWT.toText(signedToken);
+Debug.print("Complete token: " # completeText);
+```
+
 ## API Reference
 
 ### Types
 
 ```motoko
+// Unsigned JWT Token (before signing)
+public type UnsignedToken = {
+    header : [(Text, Json.Json)];
+    payload : [(Text, Json.Json)];
+};
+
 // Complete JWT Token
 public type Token = {
     header : [(Text, Json.Json)];
@@ -238,6 +286,18 @@ public func parseStandardPayload(payloadFields : [(Text, Json.Json)]) : Result.R
 
 // Validate a token against provided options
 public func validate(token : Token, options : ValidationOptions) : Result.Result<(), Text>;
+
+// Convert a complete JWT token to its text representation
+public func toText(token : Token) : Text;
+
+// Convert an unsigned JWT token to its text representation (without signature)
+public func toTextUnsigned(token : UnsignedToken) : Text;
+
+// Convert a complete JWT token to its binary representation
+public func toBlob(token : Token) : Blob;
+
+// Convert an unsigned JWT token to its binary representation (without signature)
+public func toBlobUnsigned(token : UnsignedToken) : Blob;
 ```
 
 ## License

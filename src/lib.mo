@@ -15,21 +15,119 @@ import Bool "mo:new-base/Bool";
 import RSA "mo:rsa";
 import EdDSA "mo:eddsa";
 
+/// JWT (JSON Web Token) library for Motoko.
+///
+/// This module provides functionality for creating, parsing, and validating JSON Web Tokens
+/// according to RFC 7519. It supports various signing algorithms including HMAC, ECDSA, RSA, and EdDSA.
+///
+/// Key features:
+/// * Parse JWT tokens from text format
+/// * Create and sign JWT tokens
+/// * Validate JWT signatures and claims
+/// * Support for standard JWT header and payload fields
+/// * Extensible validation options
+///
+/// Example usage:
+/// ```motoko
+/// import JWT "mo:jwt";
+/// import Result "mo:base/Result";
+///
+/// // Parse a JWT token
+/// let jwtText = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.NHVaYe26MbtOYhSKkoKYdFVomg4i8ZJd8_-RU8VNbftc";
+/// let token = JWT.parse(jwtText);
+/// ```
+///
+/// Security considerations:
+/// * Always validate signatures in production environments
+/// * Use appropriate key sizes for cryptographic algorithms
+/// * Validate expiration times and other claims as needed
+/// * Consider using HTTPS for token transmission
 module {
 
-    // Complete JWT Token
-    public type Token = {
+    /// Represents an unsigned JWT token containing header and payload.
+    /// This is a JWT token before signing, containing only the header and payload claims.
+    ///
+    /// The header contains metadata about the token (algorithm, type, etc.)
+    /// The payload contains the actual claims and data.
+    ///
+    /// Example:
+    /// ```motoko
+    /// let unsignedToken : UnsignedToken = {
+    ///     header = [("alg", #string("HS256")), ("typ", #string("JWT"))];
+    ///     payload = [("sub", #string("1234567890")), ("name", #string("John Doe"))];
+    /// };
+    /// ```
+    public type UnsignedToken = {
         header : [(Text, Json.Json)];
         payload : [(Text, Json.Json)];
+    };
+
+    /// Represents a complete JWT token with signature information.
+    /// This extends UnsignedToken to include cryptographic signature data.
+    ///
+    /// A complete JWT token consists of:
+    /// * Header: Token metadata (algorithm, type, etc.)
+    /// * Payload: Claims and data
+    /// * Signature: Cryptographic signature ensuring integrity
+    ///
+    /// Example:
+    /// ```motoko
+    /// let token : Token = {
+    ///     header = [("alg", #string("HS256")), ("typ", #string("JWT"))];
+    ///     payload = [("sub", #string("1234567890"))];
+    ///     signature = {
+    ///         algorithm = "HS256";
+    ///         value = signatureBlob;
+    ///         message = messageBlob;
+    ///     };
+    /// };
+    /// ```
+    public type Token = UnsignedToken and {
         signature : SignatureInfo;
     };
 
+    /// Contains cryptographic signature information for a JWT token.
+    /// This includes the algorithm used, the signature value, and the message that was signed.
+    ///
+    /// Fields:
+    /// * `algorithm`: The signing algorithm (e.g., "HS256", "RS256", "ES256")
+    /// * `value`: The actual signature bytes
+    /// * `message`: The message that was signed (header.payload)
+    ///
+    /// Example:
+    /// ```motoko
+    /// let signatureInfo : SignatureInfo = {
+    ///     algorithm = "HS256";
+    ///     value = Blob.fromArray([0x12, 0x34, 0x56]);
+    ///     message = Text.encodeUtf8("header.payload");
+    /// };
+    /// ```
     public type SignatureInfo = {
         algorithm : Text;
         value : Blob;
         message : Blob;
     };
 
+    /// Configuration options for JWT token validation.
+    /// Allows fine-grained control over which aspects of the token to validate.
+    ///
+    /// Fields:
+    /// * `expiration`: Whether to validate the 'exp' (expiration) claim
+    /// * `notBefore`: Whether to validate the 'nbf' (not before) claim
+    /// * `issuer`: How to validate the 'iss' (issuer) claim
+    /// * `signature`: How to validate the cryptographic signature
+    /// * `audience`: How to validate the 'aud' (audience) claim
+    ///
+    /// Example:
+    /// ```motoko
+    /// let options : ValidationOptions = {
+    ///     expiration = true;
+    ///     notBefore = true;
+    ///     issuer = #one("https://my-issuer.com");
+    ///     signature = #key(myPublicKey);
+    ///     audience = #any(["my-app", "my-service"]);
+    /// };
+    /// ```
     public type ValidationOptions = {
         expiration : Bool;
         notBefore : Bool;
@@ -38,6 +136,19 @@ module {
         audience : AudienceValidationKind;
     };
 
+    /// Defines how to validate the audience claim in a JWT token.
+    /// The audience claim identifies the recipients that the JWT is intended for.
+    ///
+    /// Options:
+    /// * `#skip`: Skip audience validation entirely
+    /// * `#one(Text)`: Token must have this exact audience
+    /// * `#any([Text])`: Token must have at least one of these audiences
+    /// * `#all([Text])`: Token must have all of these audiences
+    ///
+    /// Example:
+    /// ```motoko
+    /// let audienceValidation : AudienceValidationKind = #any(["web-app", "mobile-app"]);
+    /// ```
     public type AudienceValidationKind = {
         #skip;
         #one : Text;
@@ -45,12 +156,37 @@ module {
         #all : [Text];
     };
 
+    /// Defines how to validate the issuer claim in a JWT token.
+    /// The issuer claim identifies the principal that issued the JWT.
+    ///
+    /// Options:
+    /// * `#skip`: Skip issuer validation entirely
+    /// * `#one(Text)`: Token must be from this exact issuer
+    /// * `#any([Text])`: Token must be from one of these issuers
+    ///
+    /// Example:
+    /// ```motoko
+    /// let issuerValidation : IssuerValidationKind = #one("https://auth.example.com");
+    /// ```
     public type IssuerValidationKind = {
         #skip;
         #one : Text;
         #any : [Text];
     };
 
+    /// Defines how to validate the cryptographic signature of a JWT token.
+    /// Signature validation ensures the token hasn't been tampered with.
+    ///
+    /// Options:
+    /// * `#skip`: Skip signature validation (NOT recommended for production)
+    /// * `#key(SignatureVerificationKey)`: Use a single key for validation
+    /// * `#keys([SignatureVerificationKey])`: Try multiple keys for validation
+    /// * `#resolver((issuer: ?Text) -> Iter.Iter<SignatureVerificationKey>)`: Dynamic key resolution based on issuer
+    ///
+    /// Example:
+    /// ```motoko
+    /// let signatureValidation : SignatureValidationKind = #key(#symmetric(mySecretKey));
+    /// ```
     public type SignatureValidationKind = {
         #skip;
         #key : SignatureVerificationKey;
@@ -58,6 +194,19 @@ module {
         #resolver : (issuer : ?Text) -> Iter.Iter<SignatureVerificationKey>;
     };
 
+    /// Enumeration of supported signature verification key types.
+    /// This is used to identify which cryptographic algorithm a key supports.
+    ///
+    /// Types:
+    /// * `#symmetric`: HMAC algorithms (HS256, HS384, HS512)
+    /// * `#ecdsa`: Elliptic Curve DSA algorithms (ES256, ES384, ES512)
+    /// * `#rsa`: RSA algorithms (RS256, RS384, RS512, PS256, PS384, PS512)
+    /// * `#eddsa`: Edwards-curve DSA algorithms (EdDSA)
+    ///
+    /// Example:
+    /// ```motoko
+    /// let keyKind : SignatureVerificationKeyKind = #ecdsa;
+    /// ```
     public type SignatureVerificationKeyKind = {
         #symmetric;
         #ecdsa;
@@ -65,6 +214,19 @@ module {
         #eddsa;
     };
 
+    /// Represents a cryptographic key used for JWT signature verification.
+    /// Different key types support different signing algorithms.
+    ///
+    /// Key types:
+    /// * `#symmetric(Blob)`: Shared secret key for HMAC algorithms
+    /// * `#ecdsa(ECDSA.PublicKey)`: ECDSA public key for elliptic curve signatures
+    /// * `#rsa(RSA.PublicKey)`: RSA public key for RSA signatures
+    /// * `#eddsa(EdDSA.PublicKey)`: EdDSA public key for Edwards-curve signatures
+    ///
+    /// Example:
+    /// ```motoko
+    /// let key : SignatureVerificationKey = #symmetric(Text.encodeUtf8("my-secret-key"));
+    /// ```
     public type SignatureVerificationKey = {
         #symmetric : Blob;
         #ecdsa : ECDSA.PublicKey;
@@ -72,6 +234,30 @@ module {
         #eddsa : EdDSA.PublicKey;
     };
 
+    /// Standard JWT header fields as defined in RFC 7519.
+    /// The header contains metadata about the token and how it should be processed.
+    ///
+    /// Fields:
+    /// * `alg`: Algorithm used for signing (REQUIRED)
+    /// * `typ`: Token type, usually "JWT" (OPTIONAL)
+    /// * `cty`: Content type (OPTIONAL)
+    /// * `kid`: Key ID hint for verification (OPTIONAL)
+    /// * `x5c`: X.509 certificate chain (OPTIONAL)
+    /// * `x5u`: X.509 certificate chain URL (OPTIONAL)
+    /// * `crit`: Critical header parameters (OPTIONAL)
+    ///
+    /// Example:
+    /// ```motoko
+    /// let header : StandardHeader = {
+    ///     alg = "HS256";
+    ///     typ = ?"JWT";
+    ///     cty = null;
+    ///     kid = ?"key-1";
+    ///     x5c = null;
+    ///     x5u = null;
+    ///     crit = null;
+    /// };
+    /// ```
     public type StandardHeader = {
         // Required field
         alg : Text; // Algorithm (required by JWT spec)
@@ -85,6 +271,30 @@ module {
         crit : ?[Text]; // Critical headers
     };
 
+    /// Standard JWT payload claims as defined in RFC 7519.
+    /// The payload contains the actual claims and data carried by the token.
+    ///
+    /// Standard claims:
+    /// * `iss`: Issuer - who issued the token (OPTIONAL)
+    /// * `sub`: Subject - who the token is about (OPTIONAL)
+    /// * `aud`: Audience - who the token is for (OPTIONAL)
+    /// * `exp`: Expiration time in seconds since Unix epoch (OPTIONAL)
+    /// * `nbf`: Not before time in seconds since Unix epoch (OPTIONAL)
+    /// * `iat`: Issued at time in seconds since Unix epoch (OPTIONAL)
+    /// * `jti`: JWT ID - unique identifier for the token (OPTIONAL)
+    ///
+    /// Example:
+    /// ```motoko
+    /// let payload : StandardPayload = {
+    ///     iss = ?"https://auth.example.com";
+    ///     sub = ?"user123";
+    ///     aud = ?["web-app", "mobile-app"];
+    ///     exp = ?1234567890.0;
+    ///     nbf = ?1234567800.0;
+    ///     iat = ?1234567800.0;
+    ///     jti = ?"unique-token-id";
+    /// };
+    /// ```
     public type StandardPayload = {
         // Standard claims
         iss : ?Text; // Issuer
@@ -96,6 +306,26 @@ module {
         jti : ?Text; // JWT ID
     };
 
+    /// Parses JWT header fields into a strongly-typed StandardHeader record.
+    /// This function extracts and validates standard JWT header fields from the raw JSON structure.
+    ///
+    /// The function validates that required fields are present and have the correct types:
+    /// * `alg` field is required and must be a string
+    /// * Other fields are optional but must have correct types if present
+    ///
+    /// Parameters:
+    /// * `headerFields`: Array of key-value pairs representing the JWT header
+    ///
+    /// Returns:
+    /// * `#ok(StandardHeader)`: Successfully parsed header with validated fields
+    /// * `#err(Text)`: Error message if parsing fails or validation fails
+    ///
+    /// Example:
+    /// ```motoko
+    /// let headerFields = [("alg", #string("HS256")), ("typ", #string("JWT"))];
+    /// let result = parseStandardHeader(headerFields);
+    /// // result == #ok({alg = "HS256"; typ = ?"JWT"; ...})
+    /// ```
     public func parseStandardHeader(headerFields : [(Text, Json.Json)]) : Result.Result<StandardHeader, Text> {
         var algValue : ?Text = null;
         var typValue : ?Text = null;
@@ -202,6 +432,27 @@ module {
         };
     };
 
+    /// Parses JWT payload fields into a strongly-typed StandardPayload record.
+    /// This function extracts and validates standard JWT payload claims from the raw JSON structure.
+    ///
+    /// The function validates that all fields have the correct types:
+    /// * String fields (`iss`, `sub`, `jti`) must be strings
+    /// * Numeric fields (`exp`, `nbf`, `iat`) must be numbers (int or float)
+    /// * Audience field (`aud`) can be a string or array of strings
+    ///
+    /// Parameters:
+    /// * `payloadFields`: Array of key-value pairs representing the JWT payload
+    ///
+    /// Returns:
+    /// * `#ok(StandardPayload)`: Successfully parsed payload with validated fields
+    /// * `#err(Text)`: Error message if parsing fails or validation fails
+    ///
+    /// Example:
+    /// ```motoko
+    /// let payloadFields = [("sub", #string("1234567890")), ("exp", #number(#int(1234567890)))];
+    /// let result = parseStandardPayload(payloadFields);
+    /// // result == #ok({sub = ?"1234567890"; exp = ?1234567890.0; ...})
+    /// ```
     public func parseStandardPayload(payloadFields : [(Text, Json.Json)]) : Result.Result<StandardPayload, Text> {
         var issValue : ?Text = null;
         var subValue : ?Text = null;
@@ -304,6 +555,36 @@ module {
         });
     };
 
+    /// Performs comprehensive validation of a JWT token according to the specified options.
+    /// This function validates various aspects of the token including time-based claims,
+    /// signature verification, and audience/issuer validation.
+    ///
+    /// Validation performed based on options:
+    /// * **Expiration**: Checks if current time is before the `exp` claim
+    /// * **Not Before**: Checks if current time is after the `nbf` claim
+    /// * **Signature**: Verifies cryptographic signature using provided keys
+    /// * **Audience**: Validates that token audience matches expected values
+    /// * **Issuer**: Validates that token issuer matches expected values
+    ///
+    /// Parameters:
+    /// * `token`: The JWT token to validate
+    /// * `options`: Configuration specifying which validations to perform
+    ///
+    /// Returns:
+    /// * `#ok(())`: Token passes all specified validations
+    /// * `#err(Text)`: Token fails validation with descriptive error message
+    ///
+    /// Example:
+    /// ```motoko
+    /// let options = {
+    ///     expiration = true;
+    ///     notBefore = true;
+    ///     issuer = #one("https://auth.example.com");
+    ///     signature = #key(myKey);
+    ///     audience = #any(["web-app"]);
+    /// };
+    /// let result = validate(token, options);
+    /// ```
     // Comprehensive validation
     public func validate(token : Token, options : ValidationOptions) : Result.Result<(), Text> {
         // Check time-based claims if enabled
@@ -380,6 +661,30 @@ module {
         return #ok;
     };
 
+    /// Parses a JWT token from its text representation.
+    /// This function takes a JWT string (in the format "header.payload.signature") and
+    /// parses it into a structured Token object with decoded header, payload, and signature.
+    ///
+    /// The function performs the following steps:
+    /// 1. Splits the JWT string on '.' characters (expects exactly 3 parts)
+    /// 2. Base64-decodes each part
+    /// 3. Parses header and payload as JSON objects
+    /// 4. Extracts signature algorithm from header
+    /// 5. Constructs message for signature verification
+    ///
+    /// Parameters:
+    /// * `jwt`: The JWT token as a text string
+    ///
+    /// Returns:
+    /// * `#ok(Token)`: Successfully parsed token with all components
+    /// * `#err(Text)`: Error message if parsing fails at any step
+    ///
+    /// Example:
+    /// ```motoko
+    /// let jwtText = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.signature";
+    /// let result = parse(jwtText);
+    /// // result == #ok(token) with decoded header, payload, and signature
+    /// ```
     public func parse(jwt : Text) : Result.Result<Token, Text> {
         // Split JWT into parts
         let parts = Text.split(jwt, #char('.')) |> Iter.toArray(_);
@@ -428,10 +733,163 @@ module {
         });
     };
 
+    /// Converts an unsigned JWT token to its text representation without signature.
+    /// This function creates the "header.payload" portion of a JWT token by:
+    /// 1. Serializing header and payload to JSON
+    /// 2. Encoding as UTF-8 bytes
+    /// 3. Base64-encoding with URL-safe alphabet (no padding)
+    ///
+    /// This is useful for creating the message that will be signed, or for debugging purposes.
+    ///
+    /// Parameters:
+    /// * `token`: The unsigned JWT token to serialize
+    ///
+    /// Returns:
+    /// * `Text`: The "header.payload" portion of the JWT token
+    ///
+    /// Example:
+    /// ```motoko
+    /// let unsignedToken = {
+    ///     header = [("alg", #string("HS256"))];
+    ///     payload = [("sub", #string("1234567890"))];
+    /// };
+    /// let text = toTextUnsigned(unsignedToken);
+    /// // text == "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0"
+    /// ```
+    public func toTextUnsigned(token : UnsignedToken) : Text {
+        // Encode header
+        let headerText = Json.stringify(#object_(token.header), null);
+        let headerBytes = Text.encodeUtf8(headerText);
+        let headerBase64 = BaseX.toBase64(headerBytes.vals(), #url({ includePadding = false }));
+
+        // Encode payload
+        let payloadText = Json.stringify(#object_(token.payload), null);
+        let payloadBytes = Text.encodeUtf8(payloadText);
+        let payloadBase64 = BaseX.toBase64(payloadBytes.vals(), #url({ includePadding = false }));
+
+        // Create JWT without signature
+        headerBase64 # "." # payloadBase64;
+    };
+
+    /// Converts a complete JWT token to its text representation.
+    /// This function creates the full JWT token string by:
+    /// 1. Creating the unsigned portion (header.payload)
+    /// 2. Base64-encoding the signature
+    /// 3. Joining all parts with '.' separators
+    ///
+    /// The resulting string is the standard JWT format that can be transmitted and verified.
+    ///
+    /// Parameters:
+    /// * `token`: The complete JWT token to serialize
+    ///
+    /// Returns:
+    /// * `Text`: The full JWT token string in "header.payload.signature" format
+    ///
+    /// Example:
+    /// ```motoko
+    /// let token = {
+    ///     header = [("alg", #string("HS256"))];
+    ///     payload = [("sub", #string("1234567890"))];
+    ///     signature = { algorithm = "HS256"; value = signatureBlob; message = messageBlob };
+    /// };
+    /// let text = toText(token);
+    /// // text == "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.signature"
+    /// ```
+    public func toText(token : Token) : Text {
+        let message = toTextUnsigned(token);
+        let signatureBase64 = BaseX.toBase64(token.signature.value.vals(), #url({ includePadding = false }));
+        message # "." # signatureBase64;
+    };
+
+    /// Converts an unsigned JWT token to its binary representation.
+    /// This function creates the UTF-8 encoded bytes of the unsigned token text.
+    ///
+    /// This is useful for signature generation or when binary representation is needed.
+    ///
+    /// Parameters:
+    /// * `token`: The unsigned JWT token to convert
+    ///
+    /// Returns:
+    /// * `Blob`: The UTF-8 encoded bytes of the "header.payload" portion
+    ///
+    /// Example:
+    /// ```motoko
+    /// let blob = toBlobUnsigned(unsignedToken);
+    /// // blob contains UTF-8 bytes of "header.payload"
+    /// ```
+    public func toBlobUnsigned(token : UnsignedToken) : Blob {
+        let text = toTextUnsigned(token);
+        Text.encodeUtf8(text);
+    };
+
+    /// Converts a complete JWT token to its binary representation.
+    /// This function creates the UTF-8 encoded bytes of the complete token text.
+    ///
+    /// This is useful when binary representation of the full token is needed.
+    ///
+    /// Parameters:
+    /// * `token`: The complete JWT token to convert
+    ///
+    /// Returns:
+    /// * `Blob`: The UTF-8 encoded bytes of the full "header.payload.signature" token
+    ///
+    /// Example:
+    /// ```motoko
+    /// let blob = toBlob(token);
+    /// // blob contains UTF-8 bytes of the complete JWT token
+    /// ```
+    public func toBlob(token : Token) : Blob {
+        let text = toText(token);
+        Text.encodeUtf8(text);
+    };
+
+    /// Retrieves a specific value from the JWT token header.
+    /// This function looks up a header field by key and returns its JSON value.
+    ///
+    /// Common header fields include:
+    /// * `alg`: Signing algorithm
+    /// * `typ`: Token type (usually "JWT")
+    /// * `kid`: Key ID for verification
+    ///
+    /// Parameters:
+    /// * `token`: The JWT token to query
+    /// * `key`: The header field name to retrieve
+    ///
+    /// Returns:
+    /// * `?Json.Json`: The value if found, or `null` if not present
+    ///
+    /// Example:
+    /// ```motoko
+    /// let algorithm = getHeaderValue(token, "alg");
+    /// // algorithm == ?#string("HS256")
+    /// ```
     public func getHeaderValue(token : Token, key : Text) : ?Json.Json {
         getValue(token.header, key);
     };
 
+    /// Retrieves a specific value from the JWT token payload.
+    /// This function looks up a payload claim by key and returns its JSON value.
+    ///
+    /// Common payload claims include:
+    /// * `sub`: Subject (who the token is about)
+    /// * `iss`: Issuer (who issued the token)
+    /// * `aud`: Audience (who the token is for)
+    /// * `exp`: Expiration time
+    /// * `nbf`: Not before time
+    /// * `iat`: Issued at time
+    ///
+    /// Parameters:
+    /// * `token`: The JWT token to query
+    /// * `key`: The payload claim name to retrieve
+    ///
+    /// Returns:
+    /// * `?Json.Json`: The value if found, or `null` if not present
+    ///
+    /// Example:
+    /// ```motoko
+    /// let subject = getPayloadValue(token, "sub");
+    /// // subject == ?#string("1234567890")
+    /// ```
     public func getPayloadValue(token : Token, key : Text) : ?Json.Json {
         getValue(token.payload, key);
     };
