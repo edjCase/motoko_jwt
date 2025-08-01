@@ -36,9 +36,9 @@ To set up MOPS package manager, follow the instructions from the [MOPS Site](htt
 
 ```motoko
 import JWT "mo:jwt";
-import Result "mo:base/Result";
-import Debug "mo:base/Debug";
-import Blob "mo:base/Blob";
+import Result "mo:core/Result";
+import Debug "mo:core/Debug";
+import Blob "mo:core/Blob";
 
 // Parse a JWT string
 let jwtString = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
@@ -87,9 +87,9 @@ switch (JWT.parse(jwtString)) {
 
 ```motoko
 import JWT "mo:jwt";
-import Result "mo:base/Result";
-import Debug "mo:base/Debug";
-import Float "mo:base/Float";
+import Result "mo:core/Result";
+import Debug "mo:core/Debug";
+import Float "mo:core/Float";
 
 // Assuming we have a validated token
 let token : JWT.Token = /* previously validated token */;
@@ -142,10 +142,10 @@ switch (JWT.parseStandardPayload(token.payload)) {
 
 ```motoko
 import JWT "mo:jwt";
-import Result "mo:base/Result";
-import Debug "mo:base/Debug";
+import Result "mo:core/Result";
+import Debug "mo:core/Debug";
 import Json "mo:json";
-import Blob "mo:base/Blob";
+import Blob "mo:core/Blob";
 
 // Create an unsigned token
 let unsignedToken : JWT.UnsignedToken = {

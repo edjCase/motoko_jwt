@@ -1,6 +1,6 @@
 import { test } "mo:test";
-import Runtime "mo:new-base/Runtime";
-import Text "mo:new-base/Text";
+import Runtime "mo:core/Runtime";
+import Text "mo:core/Text";
 import JWT "../src";
 import ECDSA "mo:ecdsa";
 import RSA "mo:rsa";
