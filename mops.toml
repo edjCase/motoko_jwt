@@ -1,6 +1,6 @@
 [package]
 name = "jwt"
-version = "2.0.0"
+version = "2.0.1"
 description = "A JWT library for the Motoko programming language"
 repository = "https://github.com/edjcase/motoko_jwt"
 keywords = [
@@ -11,7 +11,7 @@ keywords = [
   "authentication",
   "authorization",
   "rsa",
-  "ecdsa",
+  "ecdsa"
 ]
 license = "MIT"
 
@@ -20,10 +20,10 @@ core = "0.6.0"
 json = "1.4.0"
 base-x-encoder = "2.0.0"
 hmac = "0.0.2"
-ecdsa = "7.0.1"
+ecdsa = "7.0.2"
 sha2 = "0.1.6"
-rsa = "2.0.1"
-eddsa = "2.0.1"
+rsa = "2.0.2"
+eddsa = "2.0.2"
 
 [dev-dependencies]
 test = "2.1.1"
