@@ -1,9 +1,9 @@
 import { test } "mo:test";
-import Runtime "mo:core/Runtime";
-import Text "mo:core/Text";
+import Runtime "mo:core@1/Runtime";
+import Text "mo:core@1/Text";
 import JWT "../src";
-import ECDSA "mo:ecdsa";
-import RSA "mo:rsa";
+import ECDSA "mo:ecdsa@7";
+import RSA "mo:rsa@2";
 
 test(
   "toBlob",

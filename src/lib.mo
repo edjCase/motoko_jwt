@@ -1,19 +1,19 @@
-import Result "mo:core/Result";
-import Text "mo:core/Text";
-import Iter "mo:core/Iter";
-import Blob "mo:core/Blob";
-import Nat "mo:core/Nat";
-import Array "mo:core/Array";
-import Float "mo:core/Float";
-import Time "mo:core/Time";
-import Json "mo:json";
-import BaseX "mo:base-x-encoder";
-import HMAC "mo:hmac";
-import ECDSA "mo:ecdsa";
-import Sha256 "mo:sha2/Sha256";
-import Bool "mo:core/Bool";
-import RSA "mo:rsa";
-import EdDSA "mo:eddsa";
+import Result "mo:core@1/Result";
+import Text "mo:core@1/Text";
+import Iter "mo:core@1/Iter";
+import Blob "mo:core@1/Blob";
+import Nat "mo:core@1/Nat";
+import Array "mo:core@1/Array";
+import Float "mo:core@1/Float";
+import Time "mo:core@1/Time";
+import Json "mo:json@1";
+import BaseX "mo:base-x-encoder@2";
+import HMAC "mo:hmac@1";
+import ECDSA "mo:ecdsa@7";
+import Sha256 "mo:sha2@0/Sha256";
+import Bool "mo:core@1/Bool";
+import RSA "mo:rsa@2";
+import EdDSA "mo:eddsa@2";
 
 /// JWT (JSON Web Token) library for Motoko.
 ///
@@ -30,7 +30,7 @@ import EdDSA "mo:eddsa";
 /// Example usage:
 /// ```motoko
 /// import JWT "mo:jwt";
-/// import Result "mo:core/Result";
+/// import Result "mo:core@1/Result";
 ///
 /// // Parse a JWT token
 /// let jwtText = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.NHVaYe26MbtOYhSKkoKYdFVomg4i8ZJd8_-RU8VNbftc";
@@ -631,7 +631,7 @@ module {
       case (#skip) (); // No audience validation needed
       case (#one(audience)) {
         // Check if audience matches
-        if (Array.indexOf<Text>(audience, aud, Text.equal) == null) {
+        if (Array.indexOf<Text>(aud, Text.equal, audience) == null) {
           return #err("Token audience does not match expected audience");
         };
       };
@@ -639,7 +639,7 @@ module {
         // Check if any of the audiences match
         let found = Array.any<Text>(
           audiences,
-          func(a : Text) : Bool = Array.indexOf<Text>(a, aud, Text.equal) != null,
+          func(a : Text) : Bool = Array.indexOf<Text>(aud, Text.equal, a) != null,
         );
         if (not found) {
           return #err("Token audience does not match expected audience");
@@ -649,7 +649,7 @@ module {
         // Check if all audiences match
         let found = Array.all<Text>(
           audiences,
-          func(a) : Bool = Array.indexOf<Text>(a, aud, Text.equal) != null,
+          func(a) : Bool = Array.indexOf<Text>(aud, Text.equal, a) != null,
         );
         if (not found) {
           return #err("Token audience does not match expected audience");
