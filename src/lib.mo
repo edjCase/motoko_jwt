@@ -14,6 +14,7 @@ import Sha256 "mo:sha2@0/Sha256";
 import Bool "mo:core@1/Bool";
 import RSA "mo:rsa@2";
 import EdDSA "mo:eddsa@2";
+import Types "./Types";
 
 /// JWT (JSON Web Token) library for Motoko.
 ///
@@ -57,10 +58,7 @@ module {
   ///     payload = [("sub", #string("1234567890")), ("name", #string("John Doe"))];
   /// };
   /// ```
-  public type UnsignedToken = {
-    header : [(Text, Json.Json)];
-    payload : [(Text, Json.Json)];
-  };
+  public type UnsignedToken = Types.UnsignedToken;
 
   /// Represents a complete JWT token with signature information.
   /// This extends UnsignedToken to include cryptographic signature data.
@@ -82,9 +80,7 @@ module {
   ///     };
   /// };
   /// ```
-  public type Token = UnsignedToken and {
-    signature : SignatureInfo;
-  };
+  public type Token = Types.Token;
 
   /// Contains cryptographic signature information for a JWT token.
   /// This includes the algorithm used, the signature value, and the message that was signed.
@@ -102,11 +98,7 @@ module {
   ///     message = Text.encodeUtf8("header.payload");
   /// };
   /// ```
-  public type SignatureInfo = {
-    algorithm : Text;
-    value : Blob;
-    message : Blob;
-  };
+  public type SignatureInfo = Types.SignatureInfo;
 
   /// Configuration options for JWT token validation.
   /// Allows fine-grained control over which aspects of the token to validate.
@@ -128,13 +120,7 @@ module {
   ///     audience = #any(["my-app", "my-service"]);
   /// };
   /// ```
-  public type ValidationOptions = {
-    expiration : Bool;
-    notBefore : Bool;
-    issuer : IssuerValidationKind;
-    signature : SignatureValidationKind;
-    audience : AudienceValidationKind;
-  };
+  public type ValidationOptions = Types.ValidationOptions;
 
   /// Defines how to validate the audience claim in a JWT token.
   /// The audience claim identifies the recipients that the JWT is intended for.
@@ -149,12 +135,7 @@ module {
   /// ```motoko
   /// let audienceValidation : AudienceValidationKind = #any(["web-app", "mobile-app"]);
   /// ```
-  public type AudienceValidationKind = {
-    #skip;
-    #one : Text;
-    #any : [Text];
-    #all : [Text];
-  };
+  public type AudienceValidationKind = Types.AudienceValidationKind;
 
   /// Defines how to validate the issuer claim in a JWT token.
   /// The issuer claim identifies the principal that issued the JWT.
@@ -168,11 +149,7 @@ module {
   /// ```motoko
   /// let issuerValidation : IssuerValidationKind = #one("https://auth.example.com");
   /// ```
-  public type IssuerValidationKind = {
-    #skip;
-    #one : Text;
-    #any : [Text];
-  };
+  public type IssuerValidationKind = Types.IssuerValidationKind;
 
   /// Defines how to validate the cryptographic signature of a JWT token.
   /// Signature validation ensures the token hasn't been tampered with.
@@ -187,12 +164,7 @@ module {
   /// ```motoko
   /// let signatureValidation : SignatureValidationKind = #key(#symmetric(mySecretKey));
   /// ```
-  public type SignatureValidationKind = {
-    #skip;
-    #key : SignatureVerificationKey;
-    #keys : [SignatureVerificationKey];
-    #resolver : (issuer : ?Text) -> Iter.Iter<SignatureVerificationKey>;
-  };
+  public type SignatureValidationKind = Types.SignatureValidationKind;
 
   /// Enumeration of supported signature verification key types.
   /// This is used to identify which cryptographic algorithm a key supports.
@@ -207,12 +179,7 @@ module {
   /// ```motoko
   /// let keyKind : SignatureVerificationKeyKind = #ecdsa;
   /// ```
-  public type SignatureVerificationKeyKind = {
-    #symmetric;
-    #ecdsa;
-    #rsa;
-    #eddsa;
-  };
+  public type SignatureVerificationKeyKind = Types.SignatureVerificationKeyKind;
 
   /// Represents a cryptographic key used for JWT signature verification.
   /// Different key types support different signing algorithms.
@@ -227,12 +194,7 @@ module {
   /// ```motoko
   /// let key : SignatureVerificationKey = #symmetric(Text.encodeUtf8("my-secret-key"));
   /// ```
-  public type SignatureVerificationKey = {
-    #symmetric : Blob;
-    #ecdsa : ECDSA.PublicKey;
-    #rsa : RSA.PublicKey;
-    #eddsa : EdDSA.PublicKey;
-  };
+  public type SignatureVerificationKey = Types.SignatureVerificationKey;
 
   /// Standard JWT header fields as defined in RFC 7519.
   /// The header contains metadata about the token and how it should be processed.
@@ -258,18 +220,7 @@ module {
   ///     crit = null;
   /// };
   /// ```
-  public type StandardHeader = {
-    // Required field
-    alg : Text; // Algorithm (required by JWT spec)
-
-    // Common optional header fields
-    typ : ?Text; // Token type (usually "JWT")
-    cty : ?Text; // Content type
-    kid : ?Text; // Key ID
-    x5c : ?[Text]; // x.509 Certificate Chain
-    x5u : ?Text; // x.509 Certificate Chain URL
-    crit : ?[Text]; // Critical headers
-  };
+  public type StandardHeader = Types.StandardHeader;
 
   /// Standard JWT payload claims as defined in RFC 7519.
   /// The payload contains the actual claims and data carried by the token.
@@ -295,16 +246,7 @@ module {
   ///     jti = ?"unique-token-id";
   /// };
   /// ```
-  public type StandardPayload = {
-    // Standard claims
-    iss : ?Text; // Issuer
-    sub : ?Text; // Subject
-    aud : ?[Text]; // Audience (can be string or array)
-    exp : ?Float; // Expiration Time (seconds since epoch)
-    nbf : ?Float; // Not Before (seconds since epoch)
-    iat : ?Float; // Issued at (seconds since epoch)
-    jti : ?Text; // JWT ID
-  };
+  public type StandardPayload = Types.StandardPayload;
 
   /// Parses JWT header fields into a strongly-typed StandardHeader record.
   /// This function extracts and validates standard JWT header fields from the raw JSON structure.

@@ -1,6 +1,6 @@
 [package]
 name = "jwt"
-version = "2.1.0"
+version = "2.1.1"
 description = "A JWT library for the Motoko programming language"
 repository = "https://github.com/edjcase/motoko_jwt"
 keywords = [
